@@ -1,16 +1,19 @@
-output "vpc_id" {
-  description = "ID of the created VPC"
-  value       = aws_vpc.this.id
+output "iam_group_name" {
+  description = "The name of the IAM group created."
+  value       = aws_iam_group.project_group.name
 }
 
-
-output "public_subnet_ids" {
-  description = "List of public subnet IDs"
-  value       = values(aws_subnet.public)[*].id
+output "iam_role_name" {
+  description = "The name of the IAM role created."
+  value       = aws_iam_role.ec2_role.name
 }
 
+output "iam_instance_profile_name" {
+  description = "The name of the IAM instance profile created."
+  value       = aws_iam_instance_profile.ec2_instance_profile.name
+}
 
-output "internet_gateway_id" {
-  description = "ID of the Internet Gateway"
-  value       = aws_internet_gateway.igw.id
+output "iam_policy_arn" {
+  description = "The ARN of the custom IAM policy."
+  value       = aws_iam_policy.s3_write_policy.arn
 }
