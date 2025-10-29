@@ -1,8 +1,8 @@
 locals {
-  iam_group_name          = "${var.project_tag}-iam-group"
-  iam_policy_name         = "${var.project_tag}-iam-policy"
-  iam_role_name           = "${var.project_tag}-iam-role"
-  iam_instance_profile    = "${var.project_tag}-iam-instance-profile"
+  iam_group_name       = "${var.project_tag}-iam-group"
+  iam_policy_name      = "${var.project_tag}-iam-policy"
+  iam_role_name        = "${var.project_tag}-iam-role"
+  iam_instance_profile = "${var.project_tag}-iam-instance-profile"
 }
 
 # IAM Group (tags not supported)
