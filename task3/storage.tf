@@ -1,11 +1,11 @@
 provider "aws" {
-  region = "us-east-1"
+  region = var.region
 }
 
 resource "aws_s3_bucket" "cmtr_bucket" {
-  bucket = "cmtr-7d8d3336-bucket-1761723666"
+  bucket = var.bucket_name
 
   tags = {
-    Project = "cmtr-7d8d3336"
+    Project = var.project_tag
   }
 }
