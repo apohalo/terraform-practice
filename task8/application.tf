@@ -37,53 +37,47 @@ resource "aws_launch_template" "this" {
 
   # --- User Data: установка веб-сервера и создание index.html ---
   user_data = base64encode(<<-EOF
-    #!/bin/bash
-    set -euxo pipefail
+  #!/usr/bin/env bash
+  set -euo pipefail
 
-    # Установка веб-сервера
-    if command -v yum >/dev/null 2>&1; then
-      yum update -y
-      yum install -y httpd
-      systemctl enable httpd
-      systemctl start httpd
-      WEB_ROOT="/var/www/html"
-    elif command -v apt-get >/dev/null 2>&1; then
-      apt-get update -y
-      apt-get install -y apache2
-      systemctl enable apache2
-      systemctl start apache2
-      WEB_ROOT="/var/www/html"
-    else
-      echo "No supported package manager found!" >&2
-      exit 1
-    fi
+  TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" \
+    -H "X-aws-ec2-metadata-token-ttl-seconds: 21600" -s || true)
 
-    # Получаем Instance ID и Private IP
-    TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" \
-      -H "X-aws-ec2-metadata-token-ttl-seconds: 21600" -s || true)
+  if [ -z "$${TOKEN}" ]; then
+    INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
+    PRIVATE_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
+  else
+    INSTANCE_ID=$(curl -s -H "X-aws-ec2-metadata-token: $${TOKEN}" \
+      http://169.254.169.254/latest/meta-data/instance-id)
+    PRIVATE_IP=$(curl -s -H "X-aws-ec2-metadata-token: $${TOKEN}" \
+      http://169.254.169.254/latest/meta-data/local-ipv4)
+  fi
 
-    if [ -z "$TOKEN" ]; then
-      INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
-      PRIVATE_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
-    else
-      INSTANCE_ID=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" \
-        http://169.254.169.254/latest/meta-data/instance-id)
-      PRIVATE_IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" \
-        http://169.254.169.254/latest/meta-data/local-ipv4)
-    fi
+  if command -v yum >/dev/null 2>&1; then
+    yum update -y
+    yum install -y httpd
+    systemctl enable httpd
+    systemctl start httpd
+    WEB_ROOT="/var/www/html"
+  elif command -v apt-get >/dev/null 2>&1; then
+    apt-get update -y
+    apt-get install -y apache2
+    systemctl enable apache2
+    systemctl start apache2
+    WEB_ROOT="/var/www/html"
+  fi
 
-    # Создаём простую HTML-страницу
-    cat > ${WEB_ROOT}/index.html <<HTML
-    <!doctype html>
-    <html>
-      <head><title>Instance Info</title></head>
-      <body style="font-family: monospace; background-color: #f0f0f0; padding: 20px;">
-        <h2>Instance Info</h2>
-        <p><b>Instance ID:</b> ${INSTANCE_ID}</p>
-        <p><b>Private IP:</b> ${PRIVATE_IP}</p>
-      </body>
-    </html>
-    HTML
+  cat > $${WEB_ROOT}/index.html <<HTML
+  <!doctype html>
+  <html>
+    <head><title>Instance Info</title></head>
+    <body>
+      <h2>Web Server up and running!</h2>
+      <p><b>Instance ID:</b> $${INSTANCE_ID}</p>
+      <p><b>Private IP:</b> $${PRIVATE_IP}</p>
+    </body>
+  </html>
+  HTML
   EOF
   )
 
