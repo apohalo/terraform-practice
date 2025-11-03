@@ -1,55 +1,44 @@
-variable "aws_region" {
-  description = "AWS region to deploy resources in."
+variable "region" {
   type        = string
-}
-
-variable "project_name" {
-  description = "Base name prefix for all resources."
-  type        = string
-}
-
-variable "environment" {
-  description = "Deployment environment name (e.g., dev, prod)."
-  type        = string
+  description = "AWS region"
 }
 
 variable "vpc_id" {
-  description = "ID of the existing VPC."
   type        = string
+  description = "VPC ID for ASG and Load Balancer"
 }
 
 variable "public_subnet_ids" {
-  description = "List of public subnet IDs used for load balancer and ASGs."
   type        = list(string)
-}
-
-variable "ami_id" {
-  description = "AMI ID for EC2 instances."
-  type        = string
+  description = "List of public subnet IDs"
 }
 
 variable "instance_type" {
-  description = "EC2 instance type for launch templates."
   type        = string
+  description = "Instance type"
+}
+
+variable "ami_id" {
+  type        = string
+  description = "AMI ID for EC2 instances"
+}
+
+variable "environment" {
+  type        = string
+  description = "Deployment environment (e.g. dev, prod)"
 }
 
 variable "blue_desired_capacity" {
-  description = "Number of instances in Blue Auto Scaling Group."
   type        = number
+  description = "Desired capacity for blue ASG"
 }
 
 variable "green_desired_capacity" {
-  description = "Number of instances in Green Auto Scaling Group."
   type        = number
+  description = "Desired capacity for green ASG"
 }
 
-# Traffic Weights
-variable "blue_weight" {
-  description = "Traffic weight for the Blue Target Group (percentage)."
-  type        = number
-}
-
-variable "green_weight" {
-  description = "Traffic weight for the Green Target Group (percentage)."
-  type        = number
+variable "project_name" {
+  type        = string
+  description = "Project name prefix"
 }

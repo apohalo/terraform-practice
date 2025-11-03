@@ -15,11 +15,13 @@ sg_ssh  = "sg-01853d694d719e43f"
 
 # AMI to use for ubuntu/http server — replace with lab AMI id
 ami_id = "ami-0bdd88bd06d16ba03"
-
-
+instance_type         = "t3.micro"
+project_name          = "cmtr-project"
+blue_desired_capacity = 1
+green_desired_capacity = 1
 # optional: override weights here or pass via -var on plan/apply
-blue_weight = 100
-green_weight = 0
+#blue_weight = 100
+#green_weight = 0
 
 
 # Tags applied to created resources

@@ -1,15 +1,15 @@
 locals {
-  alb_name    = format("%s-alb", var.project_name)
-  alb_sg_name = format("%s-alb-sg", var.project_name)
+  # Dynamic naming convention
+  blue_asg_name  = format("%s-%s-blue-asg", var.project_name, var.environment)
+  green_asg_name = format("%s-%s-green-asg", var.project_name, var.environment)
 
-  blue_lt_name  = format("%s-blue-template", var.project_name)
-  green_lt_name = format("%s-green-template", var.project_name)
+  blue_lt_name  = format("%s-%s-blue-lt", var.project_name, var.environment)
+  green_lt_name = format("%s-%s-green-lt", var.project_name, var.environment)
 
-  blue_asg_name  = format("%s-blue-asg", var.project_name)
-  green_asg_name = format("%s-green-asg", var.project_name)
+  blue_tg_name  = format("%s-%s-blue-tg", var.project_name, var.environment)
+  green_tg_name = format("%s-%s-green-tg", var.project_name, var.environment)
 
-  blue_tg_name  = format("%s-blue-tg", var.project_name)
-  green_tg_name = format("%s-green-tg", var.project_name)
+  alb_name = format("%s-%s-alb", var.project_name, var.environment)
 
   common_tags = {
     Project     = var.project_name
