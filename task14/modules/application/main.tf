@@ -27,14 +27,14 @@ resource "aws_launch_template" "lt" {
   systemctl enable httpd
   systemctl start httpd
 EOF
-)
+  )
 }
 
 resource "aws_autoscaling_group" "asg" {
-  desired_capacity     = 2
-  max_size             = 2
-  min_size             = 2
-  vpc_zone_identifier  = var.subnet_ids
+  desired_capacity    = 2
+  max_size            = 2
+  min_size            = 2
+  vpc_zone_identifier = var.subnet_ids
   launch_template {
     id      = aws_launch_template.lt.id
     version = "$Latest"
@@ -73,5 +73,5 @@ resource "aws_lb_listener" "listener" {
 
 resource "aws_autoscaling_attachment" "asg_attach" {
   autoscaling_group_name = aws_autoscaling_group.asg.id
-  lb_target_group_arn   = aws_lb_target_group.tg.arn
+  lb_target_group_arn    = aws_lb_target_group.tg.arn
 }
