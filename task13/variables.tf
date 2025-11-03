@@ -1,82 +1,55 @@
 variable "aws_region" {
-  description = "AWS region to create resources in."
+  description = "AWS region to deploy resources in."
   type        = string
 }
 
+variable "project_name" {
+  description = "Base name prefix for all resources."
+  type        = string
+}
+
+variable "environment" {
+  description = "Deployment environment name (e.g., dev, prod)."
+  type        = string
+}
 
 variable "vpc_id" {
-  description = "VPC id where to create/locate resources."
+  description = "ID of the existing VPC."
   type        = string
 }
 
-
 variable "public_subnet_ids" {
-  description = "List of public subnet ids to attach the ALB and instances."
+  description = "List of public subnet IDs used for load balancer and ASGs."
   type        = list(string)
 }
 
-
-variable "sg_lb" {
-  description = "Security group id for the ALB (allows HTTP)."
-  type        = string
-}
-
-
-variable "sg_http" {
-  description = "Security group id to attach to instances allowing HTTP."
-  type        = string
-}
-
-
-variable "sg_ssh" {
-  description = "Security group id to attach to instances allowing SSH."
-  type        = string
-}
-
-
 variable "ami_id" {
-  description = "AMI id for EC2 instances used in launch templates."
+  description = "AMI ID for EC2 instances."
   type        = string
 }
-
 
 variable "instance_type" {
-  description = "EC2 instance type for ASG instances."
+  description = "EC2 instance type for launch templates."
   type        = string
-  default     = "t3.micro"
 }
-
 
 variable "blue_desired_capacity" {
-  description = "Desired capacity for the Blue ASG."
+  description = "Number of instances in Blue Auto Scaling Group."
   type        = number
-  default     = 2
 }
-
 
 variable "green_desired_capacity" {
-  description = "Desired capacity for the Green ASG."
+  description = "Number of instances in Green Auto Scaling Group."
   type        = number
-  default     = 2
 }
 
-
+# Traffic Weights
 variable "blue_weight" {
-  description = "The traffic weight for the Blue Target Group. Specifies the percentage of traffic routed to the Blue environment."
+  description = "Traffic weight for the Blue Target Group (percentage)."
   type        = number
-  default     = 100
 }
-
 
 variable "green_weight" {
-  description = "The traffic weight for the Green Target Group. Specifies the percentage of traffic routed to the Green environment."
+  description = "Traffic weight for the Green Target Group (percentage)."
   type        = number
-  default     = 0
-}
-
-
-variable "tags" {
-  description = "Map of tags to apply to all created resources."
-  type        = map(string)
-  default     = {}
 }

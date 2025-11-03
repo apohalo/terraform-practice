@@ -18,8 +18,8 @@ ami_id = "ami-0bdd88bd06d16ba03"
 
 
 # optional: override weights here or pass via -var on plan/apply
-# blue_weight = 100
-# green_weight = 0
+blue_weight = 100
+green_weight = 0
 
 
 # Tags applied to created resources

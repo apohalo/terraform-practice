@@ -2,32 +2,98 @@ provider "aws" {
   region = var.aws_region
 }
 
-# Create an Application Load Balancer
-resource "aws_lb" "alb" {
-  name               = local.alb_name
-  internal           = false
-  load_balancer_type = "application"
-  subnets            = var.public_subnet_ids
-  security_groups    = [var.sg_lb]
+####################################
+# Data sources
+####################################
+data "aws_vpc" "selected" {
+  id = var.vpc_id
+}
+
+data "aws_subnet" "public" {
+  for_each = toset(var.public_subnet_ids)
+  id       = each.value
+}
+
+####################################
+# Security Group for ALB
+####################################
+resource "aws_security_group" "alb_sg" {
+  name        = local.alb_sg_name
+  description = "Allow HTTP access to ALB"
+  vpc_id      = data.aws_vpc.selected.id
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
   tags = local.common_tags
 }
 
-# Target Groups (HTTP on port 80)
+####################################
+# Launch Templates
+####################################
+resource "aws_launch_template" "blue_lt" {
+  name_prefix   = local.blue_lt_name
+  image_id      = var.ami_id
+  instance_type = var.instance_type
+  user_data     = base64encode(file("${path.module}/user_data_blue.sh"))
+
+  tag_specifications {
+    resource_type = "instance"
+    tags = merge(local.common_tags, {
+      Name = "${local.blue_lt_name}-instance"
+    })
+  }
+
+  tags = local.common_tags
+}
+
+resource "aws_launch_template" "green_lt" {
+  name_prefix   = local.green_lt_name
+  image_id      = var.ami_id
+  instance_type = var.instance_type
+  user_data     = base64encode(file("${path.module}/user_data_green.sh"))
+
+  tag_specifications {
+    resource_type = "instance"
+    tags = merge(local.common_tags, {
+      Name = "${local.green_lt_name}-instance"
+    })
+  }
+
+  tags = local.common_tags
+}
+
+####################################
+# Load Balancer + Target Groups
+####################################
+resource "aws_lb" "app_lb" {
+  name               = local.alb_name
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.alb_sg.id]
+  subnets            = var.public_subnet_ids
+
+  tags = local.common_tags
+}
+
 resource "aws_lb_target_group" "blue_tg" {
   name     = local.blue_tg_name
   port     = 80
   protocol = "HTTP"
-  vpc_id   = var.vpc_id
+  vpc_id   = data.aws_vpc.selected.id
 
   health_check {
-    path                = "/"
-    protocol            = "HTTP"
-    matcher             = "200-399"
-    interval            = 30
-    timeout             = 5
-    healthy_threshold   = 2
-    unhealthy_threshold = 2
+    path = "/"
   }
 
   tags = local.common_tags
@@ -37,25 +103,21 @@ resource "aws_lb_target_group" "green_tg" {
   name     = local.green_tg_name
   port     = 80
   protocol = "HTTP"
-  vpc_id   = var.vpc_id
+  vpc_id   = data.aws_vpc.selected.id
 
   health_check {
-    path                = "/"
-    protocol            = "HTTP"
-    matcher             = "200-399"
-    interval            = 30
-    timeout             = 5
-    healthy_threshold   = 2
-    unhealthy_threshold = 2
+    path = "/"
   }
 
   tags = local.common_tags
 }
 
-# Listener with weighted forward
-resource "aws_lb_listener" "http_listener" {
-  load_balancer_arn = aws_lb.alb.arn
-  port              = "80"
+####################################
+# Listener with Weighted Forwarding
+####################################
+resource "aws_lb_listener" "http" {
+  load_balancer_arn = aws_lb.app_lb.arn
+  port              = 80
   protocol          = "HTTP"
 
   default_action {
@@ -71,72 +133,18 @@ resource "aws_lb_listener" "http_listener" {
         arn    = aws_lb_target_group.green_tg.arn
         weight = var.green_weight
       }
+
+      stickiness {
+        enabled  = false
+        duration = 0
+      }
     }
   }
 }
 
-# Launch Templates — user_data generates a simple HTML page
-resource "aws_launch_template" "blue_lt" {
-  name_prefix   = local.blue_lt_name
-  image_id      = var.ami_id
-  instance_type = var.instance_type
-
-  vpc_security_group_ids = [var.sg_http, var.sg_ssh]
-
-  tag_specifications {
-    resource_type = "instance"
-    tags          = local.common_tags
-  }
-
-  user_data = base64encode(<<-EOF
-    #!/bin/bash
-    apt-get update -y || yum update -y
-    if command -v apt-get >/dev/null 2>&1; then
-      apt-get install -y nginx
-      systemctl enable nginx
-      systemctl start nginx
-    else
-      yum install -y httpd
-      systemctl enable httpd
-      systemctl start httpd
-    fi
-
-    echo "<html><h1>Blue Environment</h1></html>" > /var/www/html/index.html
-  EOF
-  )
-}
-
-resource "aws_launch_template" "green_lt" {
-  name_prefix   = local.green_lt_name
-  image_id      = var.ami_id
-  instance_type = var.instance_type
-
-  vpc_security_group_ids = [var.sg_http, var.sg_ssh]
-
-  tag_specifications {
-    resource_type = "instance"
-    tags          = local.common_tags
-  }
-
-  user_data = base64encode(<<-EOF
-    #!/bin/bash
-    apt-get update -y || yum update -y
-    if command -v apt-get >/dev/null 2>&1; then
-      apt-get install -y nginx
-      systemctl enable nginx
-      systemctl start nginx
-    else
-      yum install -y httpd
-      systemctl enable httpd
-      systemctl start httpd
-    fi
-
-    echo "<html><h1>Green Environment</h1></html>" > /var/www/html/index.html
-  EOF
-  )
-}
-
-# Auto Scaling Groups — attach to corresponding target groups
+####################################
+# Auto Scaling Groups
+####################################
 resource "aws_autoscaling_group" "blue_asg" {
   name                = local.blue_asg_name
   vpc_zone_identifier = var.public_subnet_ids
@@ -155,16 +163,8 @@ resource "aws_autoscaling_group" "blue_asg" {
     create_before_destroy = true
   }
 
-  # Тег Name
-  tag {
-    key                 = "Name"
-    value               = local.blue_asg_name
-    propagate_at_launch = true
-  }
-
-  # Общие теги
   dynamic "tag" {
-    for_each = local.common_tags
+    for_each = merge(local.common_tags, { Name = local.blue_asg_name })
     content {
       key                 = tag.key
       value               = tag.value
@@ -172,7 +172,6 @@ resource "aws_autoscaling_group" "blue_asg" {
     }
   }
 }
-
 
 resource "aws_autoscaling_group" "green_asg" {
   name                = local.green_asg_name
@@ -192,14 +191,8 @@ resource "aws_autoscaling_group" "green_asg" {
     create_before_destroy = true
   }
 
-  tag {
-    key                 = "Name"
-    value               = local.green_asg_name
-    propagate_at_launch = true
-  }
-
   dynamic "tag" {
-    for_each = local.common_tags
+    for_each = merge(local.common_tags, { Name = local.green_asg_name })
     content {
       key                 = tag.key
       value               = tag.value
