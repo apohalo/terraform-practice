@@ -15,8 +15,9 @@ module "network_security" {
 }
 
 module "application" {
-  source = "./modules/application"
-
+  source             = "./modules/application"
+  project_name       = var.project_name
+  vpc_id             = module.network.vpc_id
   subnet_ids         = module.network.public_subnet_ids
   ssh_sg_id          = module.network_security.ssh_sg_id
   public_http_sg_id  = module.network_security.public_http_sg_id
